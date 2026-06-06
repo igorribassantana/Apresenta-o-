@@ -1,0 +1,903 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  Heart, 
+  User, 
+  Calendar, 
+  Bell, 
+  Shield, 
+  Activity, 
+  Users, 
+  Clock, 
+  CheckCircle, 
+  AlertTriangle, 
+  RefreshCw, 
+  Sliders, 
+  TrendingDown, 
+  ChevronRight, 
+  Lock, 
+  MapPin, 
+  Search, 
+  Info,
+  Menu,
+  X,
+  FileText
+} from 'lucide-react';
+
+// Dados simulados iniciais para a fila inteligente
+const INITIAL_QUEUE = [
+  { id: '1', nome: 'Mariana de Souza Costa', cpf: '***.452.188-**', idade: 34, especialidade: 'Cardiologia', sintoma: 'Dor torácica leve e palpitação recorrente', gravidade: 'Urgente', cor: 'bg-orange-500', tempoEspera: '2 dias', scoreIA: 85, status: 'Aguardando' },
+  { id: '2', nome: 'Carlos Eduardo Santos', cpf: '***.891.223-**', idade: 62, especialidade: 'Cardiologia', sintoma: 'Falta de ar ao realizar pequenos esforços, histórico de infarto', gravidade: 'Muito Urgente', cor: 'bg-red-500', tempoEspera: '45 min', scoreIA: 98, status: 'Chamado' },
+  { id: '3', nome: 'Ana Beatriz Pinheiro', cpf: '***.112.904-**', idade: 21, especialidade: 'Cardiologia', sintoma: 'Check-up de rotina para atividade física', gravidade: 'Eletivo', cor: 'bg-green-500', tempoEspera: '14 dias', scoreIA: 32, status: 'Aguardando' },
+  { id: '4', nome: 'João Roberto Mendes', cpf: '***.654.332-**', idade: 49, especialidade: 'Ortopedia', sintoma: 'Dor crônica no joelho esquerdo, dificuldade de locomoção', gravidade: 'Pouco Urgente', cor: 'bg-yellow-500', tempoEspera: '5 dias', scoreIA: 55, status: 'Aguardando' },
+  { id: '5', nome: 'Clara Maria de Oliveira', cpf: '***.776.213-**', idade: 73, especialidade: 'Oftalmologia', sintoma: 'Perda súbita de campo visual, diabetes descompensada', gravidade: 'Urgente', cor: 'bg-orange-500', tempoEspera: '3 dias', scoreIA: 88, status: 'Aguardando' },
+  { id: '6', nome: 'Roberto Francisco Lima', cpf: '***.334.887-**', idade: 55, especialidade: 'Ortopedia', sintoma: 'Fratura exposta consolidada, necessita retirada de pinos', gravidade: 'Urgente', cor: 'bg-orange-500', tempoEspera: '1 dia', scoreIA: 79, status: 'Aguardando' }
+];
+
+const INITIAL_NOTIFICATIONS = [
+  { id: 1, tipo: 'info', mensagem: 'IA detectou cancelamento de vaga em Ortopedia hoje às 14h.', lido: false },
+  { id: 2, tipo: 'sucesso', mensagem: 'Fila atualizada: 3 casos eletivos remanejados para otimizar tempo ocioso.', lido: false },
+  { id: 3, tipo: 'seguranca', mensagem: 'Auditoria de acesso LGPD realizada com sucesso pelo Hospital das Clínicas.', lido: true }
+];
+
+export default function App() {
+  // Controle de Abas / Visões
+  const [activeTab, setActiveTab] = useState('home'); // 'home' | 'paciente' | 'painel' | 'sobre'
+  const [notificacoes, setNotificacoes] = useState(INITIAL_NOTIFICATIONS);
+  const [fila, setFila] = useState(INITIAL_QUEUE);
+  
+  // Estado do Paciente Ativo no simulador
+  const [pacienteAtivo, setPacienteAtivo] = useState({
+    nome: 'Paula Antunes Ribeiro',
+    cpf: '123.456.789-00',
+    idade: 42,
+    especialidade: 'Cardiologia',
+    sintomas: 'Palpitações esporádicas e tontura leve',
+    tempoEsperaAtual: '18 dias',
+    posicaoFila: 24,
+    gravidade: 'Pouco Urgente',
+    scoreIA: 48,
+    cor: 'bg-yellow-500'
+  });
+
+  // Logs do simulador de IA
+  const [logsIA, setLogsIA] = useState([
+    'Sistema iniciado com sucesso em conformidade com a LGPD.',
+    'Modelos de NLP carregados para triagem automatizada de sintomas.',
+    'Sincronização em tempo real ativa com 14 Unidades Básicas de Saúde.'
+  ]);
+
+  // Controles de Simulação
+  const [novoCancelamentoSimulado, setNovoCancelamentoSimulado] = useState(false);
+  const [opcaoRemarcacao, setOpcaoRemarcacao] = useState(false);
+  const [reclassificacaoFeita, setReclassificacaoFeita] = useState(false);
+  const [historicoClinico, setHistoricoClinico] = useState('Hipertensão leve, histórico familiar de cardiopatia.');
+
+  // Função para adicionar logs no console visual da IA
+  const addLog = (mensagem) => {
+    const timestamp = new Date().toLocaleTimeString('pt-BR');
+    setLogsIA(prev => [`[${timestamp}] ${mensagem}`, ...prev]);
+  };
+
+  // Simulação de IA: Otimizar Fila por Cancelamento
+  const dispararSimulacaoCancelamento = () => {
+    setNovoCancelamentoSimulado(true);
+    addLog('IA DETECTOU CANCELAMENTO: Dr. Marcos Silva (Cardiologia) teve uma consulta cancelada para hoje às 15:30.');
+    
+    // Atualiza notificações
+    const novaNotif = {
+      id: Date.now(),
+      tipo: 'urgente',
+      mensagem: 'Alerta de Vaga Ociosa: Paula Antunes (Você) se qualifica para antecipação hoje às 15:30!',
+      lido: false
+    };
+    setNotificacoes([novaNotif, ...notificacoes]);
+    setOpcaoRemarcacao(true);
+    
+    addLog('IA CORRELACIONOU DADOS: Paula Antunes Ribeiro tem o maior Score de Prioridade compatível na área geográfica próxima.');
+  };
+
+  // Aceitar antecipação sugerida pela IA
+  const aceitarAntecipacao = () => {
+    setPacienteAtivo(prev => ({
+      ...prev,
+      tempoEsperaAtual: 'Hoje às 15:30 (Antecipado por IA!)',
+      posicaoFila: 1,
+      gravidade: 'Atendimento Imediato'
+    }));
+    setOpcaoRemarcacao(false);
+    setNovoCancelamentoSimulado(false);
+    addLog('SUCESSO: Paciente Paula Antunes aceitou o remanejamento automático. Fila otimizada em 100%. Vaga preenchida.');
+    
+    // Remover notificação de urgência
+    setNotificacoes(prev => prev.filter(n => !n.mensagem.includes('Alerta de Vaga')));
+  };
+
+  // Simulação de IA: Alteração de Sintomas pelo Paciente (Reclassificação Automática)
+  const atualizarSintomasPaciente = (novosSintomas) => {
+    setPacienteAtivo(prev => {
+      const novoScore = 89; // Eleva score devido à dor no peito
+      addLog(`IA PROCESSANDO TRIAGEM DE LINGUAGEM NATURAL: "${novosSintomas}"`);
+      addLog('ALERTA DE RISCO: Sintomas indicam potencial angina instável. Elevando gravidade de Pouco Urgente para Urgente.');
+      addLog('RECLASSIFICAÇÃO DINÂMICA: Paciente reordenado de 24º para 3º lugar na fila de Cardiologia.');
+      
+      setReclassificacaoFeita(true);
+      return {
+        ...prev,
+        sintomas: novosSintomas,
+        gravidade: 'Urgente',
+        cor: 'bg-orange-500',
+        scoreIA: novoScore,
+        posicaoFila: 3,
+        tempoEsperaAtual: '1 dia (Priorizado por IA)'
+      };
+    });
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans flex flex-col">
+      {/* HEADER DO SUS */}
+      <header className="bg-emerald-600 text-white shadow-md sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between">
+          <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setActiveTab('home')}>
+            <div className="bg-white text-emerald-600 p-2 rounded-full font-bold text-xl flex items-center justify-center shadow-inner">
+              <Heart className="fill-emerald-600 stroke-white h-6 w-6" />
+            </div>
+            <div>
+              <h1 className="font-extrabold text-lg tracking-tight leading-none">FILA INTELIGENTE</h1>
+              <span className="text-xs text-emerald-100 font-medium">SISTEMA ÚNICO DE SAÚDE • INTEGRAÇÃO IA</span>
+            </div>
+          </div>
+
+          <nav className="flex items-center space-x-1 md:space-x-4 mt-2 sm:mt-0">
+            <button 
+              onClick={() => setActiveTab('home')} 
+              className={`px-3 py-2 rounded-lg text-sm font-semibold transition-all duration-150 ${activeTab === 'home' ? 'bg-emerald-700 text-white shadow-sm' : 'text-emerald-50 hover:bg-emerald-500'}`}
+            >
+              Início
+            </button>
+            <button 
+              onClick={() => setActiveTab('paciente')} 
+              className={`px-3 py-2 rounded-lg text-sm font-semibold transition-all duration-150 ${activeTab === 'paciente' ? 'bg-emerald-700 text-white shadow-sm' : 'text-emerald-50 hover:bg-emerald-500'}`}
+            >
+              Área do Paciente
+            </button>
+            <button 
+              onClick={() => setActiveTab('painel')} 
+              className={`px-3 py-2 rounded-lg text-sm font-semibold transition-all duration-150 ${activeTab === 'painel' ? 'bg-emerald-700 text-white shadow-sm' : 'text-emerald-50 hover:bg-emerald-500'}`}
+            >
+              Painel de Gestão IA
+            </button>
+            <button 
+              onClick={() => setActiveTab('sobre')} 
+              className={`px-3 py-2 rounded-lg text-sm font-semibold transition-all duration-150 ${activeTab === 'sobre' ? 'bg-emerald-700 text-white shadow-sm' : 'text-emerald-50 hover:bg-emerald-500'}`}
+            >
+              Sobre o Projeto
+            </button>
+          </nav>
+
+          <div className="hidden lg:flex items-center space-x-2 bg-emerald-700 px-3 py-1.5 rounded-full text-xs font-mono border border-emerald-500/30">
+            <span className="w-2.5 h-2.5 bg-emerald-400 rounded-full animate-pulse"></span>
+            <span>LGPD: Protegido</span>
+          </div>
+        </div>
+      </header>
+
+      {/* ÁREA DE CONTEÚDO PRINCIPAL */}
+      <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        {/* COLUNA ESQUERDA (9 colunas para o conteúdo dinâmico principal) */}
+        <div className="lg:col-span-8 space-y-6">
+          
+          {/* ABA 1: HOME (CONCEITO & VANTAGENS) */}
+          {activeTab === 'home' && (
+            <div className="space-y-6">
+              {/* Hero Banner */}
+              <div className="bg-gradient-to-r from-emerald-800 to-teal-700 text-white rounded-2xl p-6 md:p-8 shadow-lg relative overflow-hidden">
+                <div className="absolute right-0 bottom-0 opacity-10 transform translate-x-10 translate-y-10">
+                  <Activity size={320} />
+                </div>
+                <div className="relative z-10 max-w-2xl">
+                  <span className="bg-teal-500 text-white text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full">Proposta de Tecnologia SUS</span>
+                  <h2 className="text-3xl md:text-4xl font-extrabold mt-3 leading-tight">
+                    Otimizando a Saúde Pública com Inteligência Artificial.
+                  </h2>
+                  <p className="mt-3 text-emerald-100 text-sm md:text-base leading-relaxed">
+                    O Fila Inteligente SUS é um ecossistema projetado para eliminar o tempo ocioso de médicos, acelerar o atendimento de urgências e dar transparência de ponta a ponta aos pacientes do SUS através de algoritmos preditivos e análise em tempo real.
+                  </p>
+                  <div className="mt-6 flex flex-wrap gap-3">
+                    <button 
+                      onClick={() => setActiveTab('paciente')}
+                      className="bg-white text-emerald-800 hover:bg-emerald-50 font-bold px-5 py-2.5 rounded-xl text-sm shadow-md transition-all flex items-center"
+                    >
+                      <User className="mr-2 h-4 w-4" /> Simular como Paciente
+                    </button>
+                    <button 
+                      onClick={() => setActiveTab('painel')}
+                      className="bg-emerald-950/40 hover:bg-emerald-900/50 text-white font-bold px-5 py-2.5 rounded-xl text-sm border border-emerald-500/30 transition-all flex items-center"
+                    >
+                      <Sliders className="mr-2 h-4 w-4" /> Painel de Gestão (Médicos/Gestores)
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Grid de Problema vs Solução Inteligente */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                  <div className="flex items-center space-x-3 text-red-600 mb-3">
+                    <AlertTriangle className="h-6 w-6" />
+                    <h3 className="font-bold text-lg">O Grande Desafio Atual</h3>
+                  </div>
+                  <ul className="space-y-3 text-sm text-slate-600">
+                    <li className="flex items-start">
+                      <span className="text-red-500 mr-2 font-bold">•</span>
+                      Vagas ociosas causadas por cancelamentos de última hora sem preenchimento ágil.
+                    </li>
+                    <li className="flex items-start">
+                      <span className="text-red-500 mr-2 font-bold">•</span>
+                      Pacientes estáveis aguardando o mesmo tempo que pacientes que pioraram silenciosamente.
+                    </li>
+                    <li className="flex items-start">
+                      <span className="text-red-500 mr-2 font-bold">•</span>
+                      Incerteza angustiante e falta de visibilidade sobre a real posição na fila.
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="bg-emerald-50/55 p-5 rounded-2xl border border-emerald-100 shadow-sm">
+                  <div className="flex items-center space-x-3 text-emerald-700 mb-3">
+                    <Activity className="h-6 w-6 text-emerald-600" />
+                    <h3 className="font-bold text-lg">A Resolução com IA</h3>
+                  </div>
+                  <ul className="space-y-3 text-sm text-slate-700">
+                    <li className="flex items-start">
+                      <span className="text-emerald-600 mr-2 font-bold">✓</span>
+                      <strong>Otimização de Vagas:</strong> Preenchimento instantâneo de horários cancelados através de geolocalização e prontidão.
+                    </li>
+                    <li className="flex items-start">
+                      <span className="text-emerald-600 mr-2 font-bold">✓</span>
+                      <strong>Classificação Adaptativa:</strong> Monitoramento contínuo de sintomas por NLP para atualizar o nível de urgência na fila.
+                    </li>
+                    <li className="flex items-start">
+                      <span className="text-emerald-600 mr-2 font-bold">✓</span>
+                      <strong>Transparência Máxima:</strong> Acompanhamento pelo app em tempo real, sem surpresas.
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* Simulador Interativo Rápido (Exemplo Prático) */}
+              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="font-extrabold text-lg">Testar Simulação de IA (Tempo Real)</h3>
+                    <p className="text-xs text-slate-500">Veja como o algoritmo atua no SUS em segundos</p>
+                  </div>
+                  <span className="bg-emerald-100 text-emerald-800 text-xs font-semibold px-2 py-1 rounded">Modo Demonstração</span>
+                </div>
+
+                <div className="bg-slate-50 p-4 rounded-xl mb-4 border border-slate-200/60">
+                  <h4 className="text-sm font-bold mb-2 flex items-center text-slate-700">
+                    <Sliders className="h-4 w-4 mr-1.5 text-emerald-600" /> Disparadores Rápidos
+                  </h4>
+                  <div className="flex flex-wrap gap-2.5">
+                    <button 
+                      onClick={dispararSimulacaoCancelamento}
+                      className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 text-xs font-bold py-2 px-3.5 rounded-lg transition-all"
+                    >
+                      ⚡ Simular Cancelamento em Cardiologia
+                    </button>
+                    <button 
+                      onClick={() => atualizarSintomasPaciente("Sentindo dor forte no peito que irradia para o braço esquerdo nas últimas 2 horas")}
+                      className="bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200 text-xs font-bold py-2 px-3.5 rounded-lg transition-all"
+                    >
+                      ⚠️ Simular Agravamento de Sintomas
+                    </button>
+                  </div>
+                </div>
+
+                {novoCancelamentoSimulado && (
+                  <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl mb-4 animate-pulse">
+                    <div className="flex items-start space-x-3">
+                      <div className="bg-amber-500 text-white p-1 rounded-full mt-0.5">
+                        <Bell className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-amber-900">Alerta da IA do SUS!</h4>
+                        <p className="text-xs text-amber-800 mt-1">
+                          Vaga de consulta detectada às 15:30 hoje no Posto de Saúde Central. A IA priorizou a paciente <strong>Paula Antunes</strong> baseada no score clínico e na distância de 2.1km.
+                        </p>
+                        <div className="mt-2.5 flex space-x-2">
+                          <button 
+                            onClick={aceitarAntecipacao}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors"
+                          >
+                            Aceitar Antecipação
+                          </button>
+                          <button 
+                            onClick={() => setNovoCancelamentoSimulado(false)}
+                            className="bg-transparent hover:bg-amber-100 text-amber-900 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                          >
+                            Ignorar Alerta
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="text-xs text-slate-400 text-center flex items-center justify-center">
+                  <Info className="h-3.5 w-3.5 mr-1" />
+                  Você também pode gerenciar estas e outras ações nas abas específicas do menu superior.
+                </div>
+              </div>
+
+              {/* Pilares da Segurança e LGPD */}
+              <div className="bg-slate-900 text-slate-200 p-6 rounded-2xl shadow-md">
+                <div className="flex items-center space-x-3 text-teal-400 mb-4">
+                  <Shield className="h-6 w-6" />
+                  <h3 className="font-bold text-lg text-white">Privacidade e Segurança de Dados (LGPD)</h3>
+                </div>
+                <p className="text-sm text-slate-300 leading-relaxed mb-4">
+                  Dados de saúde são altamente sensíveis. O Fila Inteligente SUS é arquitetado sobre os mais rígidos preceitos de privacidade por design (Privacy by Design), garantindo pleno cumprimento à Lei Geral de Proteção de Dados:
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                  <div className="bg-slate-800/80 p-3 rounded-lg border border-slate-700/60">
+                    <h4 className="font-bold text-white mb-1">Criptografia Ponta-a-Ponta</h4>
+                    <p className="text-slate-400">Dados do prontuário cifrados em trânsito e em repouso com algoritmo AES-256.</p>
+                  </div>
+                  <div className="bg-slate-800/80 p-3 rounded-lg border border-slate-700/60">
+                    <h4 className="font-bold text-white mb-1">Acesso Diferenciado</h4>
+                    <p className="text-slate-400">Somente o médico assistente direto do caso possui a chave de decodificação para ver os sintomas detalhados.</p>
+                  </div>
+                  <div className="bg-slate-800/80 p-3 rounded-lg border border-slate-700/60">
+                    <h4 className="font-bold text-white mb-1">Auditoria Imutável</h4>
+                    <p className="text-slate-400">Cada alteração na fila de espera ou consulta de dados gera um registro permanente inviolável (Log Audit).</p>
+                  </div>
+                  <div className="bg-slate-800/80 p-3 rounded-lg border border-slate-700/60">
+                    <h4 className="font-bold text-white mb-1">Autenticação com Gov.br</h4>
+                    <p className="text-slate-400">Acesso integrado à conta unificada do cidadão com duplo fator de autenticação (2FA).</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ABA 2: ÁREA DO PACIENTE (VISUAL DO APLICATIVO DO CIDADÃO) */}
+          {activeTab === 'paciente' && (
+            <div className="space-y-6">
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="bg-emerald-100 text-emerald-800 h-10 w-10 rounded-full flex items-center justify-center font-bold">
+                      PR
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-800">{pacienteAtivo.nome}</h3>
+                      <p className="text-xs text-slate-500">CPF: {pacienteAtivo.cpf} | Idade: {pacienteAtivo.idade} anos</p>
+                    </div>
+                  </div>
+                  <span className="bg-slate-100 text-slate-700 text-xs font-semibold px-2.5 py-1 rounded-full flex items-center">
+                    <Lock className="h-3 w-3 mr-1" /> Login Seguro
+                  </span>
+                </div>
+
+                {/* Status Geral da Solicitação */}
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/80">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                    <div>
+                      <span className="text-xs uppercase font-bold text-slate-400">Sua Solicitação Ativa</span>
+                      <h4 className="font-bold text-base text-emerald-800">Consulta de {pacienteAtivo.especialidade}</h4>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xs text-slate-500">Gravidade:</span>
+                      <span className={`text-xs font-bold text-white px-2.5 py-1 rounded-full ${pacienteAtivo.cor}`}>
+                        {pacienteAtivo.gravidade}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Fluxo / Progresso na Fila */}
+                  <div className="space-y-3 mb-4">
+                    <div className="flex justify-between text-xs font-bold text-slate-600">
+                      <span>Posição Atual: {pacienteAtivo.posicaoFila}º lugar</span>
+                      <span>Espera Prevista: {pacienteAtivo.tempoEsperaAtual}</span>
+                    </div>
+                    <div className="w-full bg-slate-200 h-3 rounded-full overflow-hidden">
+                      <div 
+                        className="bg-emerald-600 h-full rounded-full transition-all duration-500" 
+                        style={{ width: `${Math.max(5, 100 - (pacienteAtivo.posicaoFila * 3.5))}%` }}
+                      ></div>
+                    </div>
+                    <p className="text-xxs text-slate-400 italic">
+                      *A IA recalcula as posições periodicamente conforme urgências médicas detectadas em toda a rede pública.
+                    </p>
+                  </div>
+
+                  {/* Informações de Inteligência Artificial aplicada ao paciente */}
+                  <div className="bg-emerald-50/50 p-3.5 rounded-lg border border-emerald-100 text-xs text-slate-700">
+                    <div className="flex items-center space-x-1.5 font-bold text-emerald-800 mb-1">
+                      <Activity className="h-4 w-4 text-emerald-600" />
+                      <span>Análise de Prioridade Automatizada (Score: {pacienteAtivo.scoreIA}/100)</span>
+                    </div>
+                    <p className="leading-relaxed">
+                      Seu caso está sendo continuamente monitorado. A IA prioriza este pedido devido ao seu histórico clínico prévio ({historicoClinico}) cruzado com os sintomas relatados.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Opções Rápidas de Interação */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5">
+                  
+                  {/* Formulário de Atualização de Sintomas */}
+                  <div className="border border-slate-200 p-4 rounded-xl bg-white space-y-3">
+                    <h4 className="font-bold text-sm text-slate-800 flex items-center">
+                      <FileText className="h-4 w-4 mr-1.5 text-slate-600" /> Atualizar seus Sintomas
+                    </h4>
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      Sentiu alguma mudança no seu quadro de saúde? Descreva detalhadamente abaixo. Nossa Inteligência Artificial analisará se é necessário priorizar seu atendimento.
+                    </p>
+                    <textarea 
+                      placeholder="Ex: Estou sentindo tonturas fortes hoje acompanhadas de dor leve no peito após subir escadas..." 
+                      className="w-full text-xs p-2.5 border border-slate-300 rounded-lg focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+                      rows="3"
+                      id="inputSintomas"
+                    ></textarea>
+                    <button 
+                      onClick={() => {
+                        const txt = document.getElementById('inputSintomas').value;
+                        if(txt.trim()) {
+                          atualizarSintomasPaciente(txt);
+                          document.getElementById('inputSintomas').value = "";
+                        }
+                      }}
+                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 px-3 rounded-lg transition-colors flex items-center justify-center"
+                    >
+                      Enviar para Análise de IA
+                    </button>
+                    {reclassificacaoFeita && (
+                      <div className="bg-orange-50 border border-orange-200 p-2.5 rounded text-xxs text-orange-800">
+                        ✨ <strong>Sucesso:</strong> A IA processou seu novo relato. Sua gravidade foi elevada e sua posição na fila foi otimizada para o 3º lugar devido aos riscos apontados.
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Informações Clínicas do Usuário no SUS */}
+                  <div className="border border-slate-200 p-4 rounded-xl bg-white space-y-3 flex flex-col justify-between">
+                    <div>
+                      <h4 className="font-bold text-sm text-slate-800 flex items-center">
+                        <Users className="h-4 w-4 mr-1.5 text-slate-600" /> Prontuário Integrado
+                      </h4>
+                      <p className="text-xs text-slate-500 leading-relaxed mb-3">
+                        Informações importadas com segurança da Rede Nacional de Dados em Saúde (RNDS) para refinamento do algoritmo da fila.
+                      </p>
+                      
+                      <div className="space-y-2 text-xs">
+                        <div className="flex justify-between border-b border-slate-100 pb-1">
+                          <span className="text-slate-500">Histórico Registrado:</span>
+                          <span className="font-medium text-slate-800">{historicoClinico}</span>
+                        </div>
+                        <div className="flex justify-between border-b border-slate-100 pb-1">
+                          <span className="text-slate-500">Última Consulta SUS:</span>
+                          <span className="font-medium text-slate-800">12/03/2026</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-500">Unidade de Referência:</span>
+                          <span className="font-medium text-slate-800">UBS Central de Guarapuava</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-2">
+                      <label className="block text-xxs font-bold text-slate-400 uppercase mb-1">Simular Alteração no Prontuário</label>
+                      <select 
+                        onChange={(e) => {
+                          setHistoricoClinico(e.target.value);
+                          addLog(`PRONTUÁRIO ATUALIZADO: Histórico alterado para "${e.target.value}". IA recalculando pesos de risco...`);
+                        }}
+                        className="w-full text-xxs p-1.5 border border-slate-200 rounded bg-slate-50 text-slate-600 focus:outline-none"
+                      >
+                        <option value="Hipertensão leve, histórico familiar de cardiopatia.">Hipertensão Leve (Risco Baixo)</option>
+                        <option value="Diabetes Tipo 2 Insulinodependente, Cardiopatia Isquêmica Prévia.">Diabetes + Cardiopatia Crônica (Risco Alto)</option>
+                        <option value="Nenhum histórico crônico relevante registrado.">Sem histórico relevante (Risco Muito Baixo)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* Notificação Especial de Vaga Ociosa via IA */}
+                {opcaoRemarcacao && (
+                  <div className="mt-5 bg-gradient-to-r from-amber-500 to-orange-500 text-white p-5 rounded-xl shadow-md animate-bounce">
+                    <div className="flex items-start justify-between">
+                      <div className="flex space-x-3">
+                        <div className="bg-white/20 p-2 rounded-lg">
+                          <Clock className="h-6 w-6 text-white" />
+                        </div>
+                        <div>
+                          <h4 className="font-extrabold text-base">Vaga de Antecipação Encontrada!</h4>
+                          <p className="text-xs text-white/95 mt-1">
+                            A inteligência artificial localizou um encaixe automático hoje às 15:30 devido a uma desistência na UBS Central (Cardiologia). Deseja confirmar?
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-4 flex justify-end space-x-3">
+                      <button 
+                        onClick={() => setOpcaoRemarcacao(false)}
+                        className="bg-transparent hover:bg-white/10 border border-white/30 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors"
+                      >
+                        Manter Fila Normal
+                      </button>
+                      <button 
+                        onClick={aceitarAntecipacao}
+                        className="bg-white hover:bg-slate-100 text-slate-900 text-xs font-extrabold px-4 py-2 rounded-lg shadow transition-colors"
+                      >
+                        Confirmar Nova Data (Hoje às 15:30)
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+              </div>
+
+              {/* Guia de Transparência de Posição */}
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                <h4 className="font-bold text-slate-800 mb-2">Por que as posições na fila mudam?</h4>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Diferente de uma fila estática por ordem de chegada, a <strong>Fila Inteligente do SUS</strong> é dinâmica. Casos mais urgentes e que apresentem risco iminente de morte ou sequelas graves sobem de posição automaticamente por meio da análise clínica algorítmica. Ao mesmo tempo, cancelamentos são ocupados de imediato por quem está no topo e reside perto da clínica, reduzindo o desperdício de tempo dos especialistas e encurtando a fila geral.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* ABA 3: PAINEL DE GESTÃO (PARA MÉDICOS, HOSPITAIS E SECRETARIAS) */}
+          {activeTab === 'painel' && (
+            <div className="space-y-6">
+              
+              {/* Cards de Métricas Principais */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                  <div className="flex items-center justify-between text-slate-500 mb-1.5">
+                    <span className="text-xs font-medium">Tempo de Espera Médio</span>
+                    <Clock className="h-4 w-4 text-emerald-600" />
+                  </div>
+                  <div className="flex items-baseline space-x-1.5">
+                    <span className="text-xl font-bold text-slate-800">18 Dias</span>
+                    <span className="text-xxs text-emerald-600 font-semibold flex items-center">
+                      <TrendingDown className="h-3 w-3 mr-0.5" /> -42%
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-slate-400">Antes da IA: 31 dias</span>
+                </div>
+
+                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                  <div className="flex items-center justify-between text-slate-500 mb-1.5">
+                    <span className="text-xs font-medium">Ocupação de Vagas</span>
+                    <Activity className="h-4 w-4 text-emerald-600" />
+                  </div>
+                  <div className="flex items-baseline space-x-1.5">
+                    <span className="text-xl font-bold text-slate-800">97.8%</span>
+                    <span className="text-xxs text-emerald-600 font-semibold flex items-center">
+                      +15%
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-slate-400">Ociosidade reduzida a zero</span>
+                </div>
+
+                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                  <div className="flex items-center justify-between text-slate-500 mb-1.5">
+                    <span className="text-xs font-medium">Encaixes Automatizados</span>
+                    <RefreshCw className="h-4 w-4 text-emerald-600" />
+                  </div>
+                  <div className="flex items-baseline space-x-1.5">
+                    <span className="text-xl font-bold text-slate-800">412</span>
+                    <span className="text-xxs text-slate-400">esta semana</span>
+                  </div>
+                  <span className="text-[10px] text-slate-400">Desistências preenchidas</span>
+                </div>
+
+                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                  <div className="flex items-center justify-between text-slate-500 mb-1.5">
+                    <span className="text-xs font-medium">Casos Críticos Triados</span>
+                    <AlertTriangle className="h-4 w-4 text-orange-500" />
+                  </div>
+                  <div className="flex items-baseline space-x-1.5">
+                    <span className="text-xl font-bold text-slate-800">89</span>
+                    <span className="text-xxs text-orange-600 font-semibold">Prioritários</span>
+                  </div>
+                  <span className="text-[10px] text-slate-400">Atendimento prioritário hoje</span>
+                </div>
+              </div>
+
+              {/* Tabela de Monitoramento da Fila de Espera em Tempo Real */}
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                  <div>
+                    <h3 className="font-extrabold text-slate-800 text-lg">Fila Otimizada por IA (Live)</h3>
+                    <p className="text-xs text-slate-500">Simulação da lista dinâmica cruzando gravidade e georreferenciamento</p>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <button 
+                      onClick={() => {
+                        setFila(INITIAL_QUEUE);
+                        addLog('LISTA REINICIADA: Fila restaurada para as posições de demonstração originais.');
+                      }}
+                      className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold py-1.5 px-3 rounded-lg transition-colors flex items-center"
+                    >
+                      <RefreshCw className="h-3.5 w-3.5 mr-1" /> Resetar Lista
+                    </button>
+                    <button 
+                      onClick={() => {
+                        // Adicionar um novo paciente simulado de urgência no topo
+                        const novoPaciente = {
+                          id: Date.now().toString(),
+                          nome: 'Juliana Goulart Vieira',
+                          cpf: '***.291.884-**',
+                          idade: 51,
+                          especialidade: 'Cardiologia',
+                          sintoma: 'Síncope recorrente, palpitação com dor irradiada e vômito',
+                          gravidade: 'Muito Urgente',
+                          cor: 'bg-red-500',
+                          tempoEspera: 'Imediato (IA)',
+                          scoreIA: 95,
+                          status: 'Aguardando'
+                        };
+                        setFila([novoPaciente, ...fila]);
+                        addLog('ALERTA CRÍTICO: Entrada de Juliana Goulart (Score 95). Alocado no topo da fila de Cardiologia por altíssimo risco de complicação cardíaca.');
+                      }}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-1.5 px-3 rounded-lg transition-colors flex items-center shadow-sm"
+                    >
+                      + Caso Crítico
+                    </button>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-slate-50 text-slate-500 uppercase font-bold border-b border-slate-150">
+                        <th className="py-3 px-4">Prioridade/Score IA</th>
+                        <th className="py-3 px-4">Paciente</th>
+                        <th className="py-3 px-4">Especialidade</th>
+                        <th className="py-3 px-4">Sintomas / Relato</th>
+                        <th className="py-3 px-4">Gravidade</th>
+                        <th className="py-3 px-4">Previsão de Atendimento</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {fila.map((paciente, idx) => (
+                        <tr key={paciente.id} className="hover:bg-slate-50/70 transition-colors">
+                          <td className="py-3 px-4">
+                            <div className="flex items-center space-x-2">
+                              <span className="font-extrabold text-slate-700">{idx + 1}º</span>
+                              <span className="bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded-full font-bold text-[10px] border border-emerald-100">
+                                {paciente.scoreIA} pts
+                              </span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div>
+                              <div className="font-bold text-slate-800">{paciente.nome}</div>
+                              <div className="text-[10px] text-slate-400">{paciente.cpf} | {paciente.idade} anos</div>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 font-semibold text-slate-600">
+                            {paciente.especialidade}
+                          </td>
+                          <td className="py-3 px-4 max-w-xs text-slate-500 truncate" title={paciente.sintoma}>
+                            {paciente.sintoma}
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className={`text-[10px] text-white font-extrabold px-2.5 py-0.5 rounded-full ${paciente.cor}`}>
+                              {paciente.gravidade}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 font-bold text-slate-700">
+                            {paciente.tempoEspera}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="mt-4 bg-slate-50 p-3 rounded-lg border border-slate-200/50 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500">
+                  <div className="flex items-center space-x-2 mb-2 sm:mb-0">
+                    <span className="w-2 h-2 bg-red-500 rounded-full"></span> <span>Muito Urgente / Urgente (Protocolo Manchester Adaptado)</span>
+                  </div>
+                  <span>Total na Fila de Exemplo: {fila.length} pacientes</span>
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* ABA 4: SOBRE O PROJETO & VIABILIDADE */}
+          {activeTab === 'sobre' && (
+            <div className="space-y-6">
+              
+              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                <h3 className="font-extrabold text-2xl text-slate-800">Concepção Teórica da IA do SUS</h3>
+                
+                <p className="text-sm text-slate-600 leading-relaxed">
+                  O projeto <strong>Fila Inteligente SUS</strong> não visa desrespeitar as leis de priorização cronológica, mas sim aliá-las à realidade clínica de urgência em saúde pública. A viabilidade técnica baseia-se em tecnologias já existentes que necessitam apenas de integração sistêmica.
+                </p>
+
+                <div className="border-l-4 border-emerald-500 pl-4 my-4 space-y-2">
+                  <h4 className="font-bold text-slate-700 text-sm">Como funciona o Algoritmo de Otimização:</h4>
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    A IA calcula em tempo real o <strong>Score de Risco Multidimensional (SRM)</strong> de cada paciente. Esse score é dinâmico e combina: 
+                    <br />
+                    <code>Score = (Gravidade Clínica × Peso) + (Tempo de Espera Acumulado × Peso) + (Fator de Risco Histórico)</code>.
+                    Dessa forma, um paciente que está esperando há muito tempo por um exame preventivo não é esquecido, mas se um novo paciente apresentar sintomas agudos de risco de infarto, ele é alocado no topo imediatamente.
+                  </p>
+                </div>
+
+                <h4 className="font-bold text-slate-800 text-base">Os 3 Pilares Tecnológicos do Projeto</h4>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                    <div className="text-emerald-600 font-bold mb-1.5 flex items-center text-sm">
+                      <FileText className="h-4.5 w-4.5 mr-1" /> NLP para Triagem
+                    </div>
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      Modelos de Processamento de Linguagem Natural (como o Gemini) interpretam as queixas e sintomas digitados pelos pacientes em linguagem coloquial, mapeando-os para termos médicos e atribuindo gravidade clínica.
+                    </p>
+                  </div>
+
+                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                    <div className="text-emerald-600 font-bold mb-1.5 flex items-center text-sm">
+                      <RefreshCw className="h-4.5 w-4.5 mr-1" /> Otimização de Recursos
+                    </div>
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      Pesquisa operacional e algoritmos de grafos cruzam desistências, geolocalização dos pacientes mais próximos e disponibilidade de médicos para remanejar horários vagos em menos de 5 minutos de forma automatizada.
+                    </p>
+                  </div>
+
+                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                    <div className="text-emerald-600 font-bold mb-1.5 flex items-center text-sm">
+                      <Shield className="h-4.5 w-4.5 mr-1" /> Criptografia Homomórfica
+                    </div>
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      Possibilita que a inteligência artificial processe dados de saúde e calcule scores de risco sem expor dados identificáveis diretamente, mantendo a confidencialidade absoluta do paciente perante terceiros.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-emerald-50 text-emerald-800 p-4 rounded-xl border border-emerald-100 mt-6">
+                  <h4 className="font-bold text-sm mb-1">Impactos Sociais Esperados:</h4>
+                  <ul className="list-disc pl-5 text-xs space-y-1.5 leading-relaxed">
+                    <li><strong>Atendimento Humanizado:</strong> Reduz a ansiedade do paciente ao fornecer atualizações contínuas sobre seu status.</li>
+                    <li><strong>Eficiência Orçamentária:</strong> Menor custo por atendimento ao evitar ociosidade de clínicas altamente equipadas.</li>
+                    <li><strong>Equidade Social:</strong> Garante que cidadãos com sintomas graves tenham acesso prioritário, independente de sua alfabetização sobre o funcionamento das filas burocráticas tradicionais.</li>
+                  </ul>
+                </div>
+              </div>
+
+            </div>
+          )}
+
+        </div>
+
+        {/* COLUNA DIREITA: CONSOLE ATIVO DA INTELIGÊNCIA ARTIFICIAL (3 colunas fixas de simulação) */}
+        <div className="lg:col-span-4 space-y-6">
+          
+          {/* Box de Controle Rápido do Simulador de IA */}
+          <div className="bg-slate-900 text-slate-100 p-5 rounded-2xl shadow-lg border border-slate-800">
+            <div className="flex items-center justify-between mb-3 border-b border-slate-800 pb-3">
+              <div className="flex items-center space-x-2">
+                <Activity className="h-5 w-5 text-emerald-400 animate-pulse" />
+                <h3 className="font-bold text-sm tracking-wide text-white uppercase">IA SUS Ativa</h3>
+              </div>
+              <span className="bg-emerald-500/20 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-500/30">
+                Online
+              </span>
+            </div>
+
+            <p className="text-xs text-slate-400 leading-relaxed mb-4">
+              Abaixo são exibidas em tempo real as análises preditivas feitas por nossos modelos inteligentes integrados ao SUS.
+            </p>
+
+            {/* Terminal de Logs */}
+            <div className="bg-black/80 rounded-xl p-3.5 font-mono text-[10px] text-emerald-400 space-y-2 h-64 overflow-y-auto border border-emerald-500/10">
+              {logsIA.map((log, index) => (
+                <div key={index} className="leading-normal pb-1 border-b border-emerald-950/40">
+                  <span className="text-slate-500">{">>> "}</span>{log}
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-4 space-y-2.5">
+              <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Ações de Simulação Direta</span>
+              
+              <button 
+                onClick={dispararSimulacaoCancelamento}
+                className="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold py-2 px-3 rounded-lg border border-slate-700/60 transition-all flex items-center justify-between"
+              >
+                <span>Simular Cancelamento de Vaga</span>
+                <ChevronRight className="h-4 w-4 text-slate-400" />
+              </button>
+
+              <button 
+                onClick={() => {
+                  const novosSintomas = "Dor no peito aguda, persistente, acompanhada de suor frio e náuseas.";
+                  atualizarSintomasPaciente(novosSintomas);
+                  addLog("SIMULADOR: Paciente Paula Antunes updated the symptoms. IA triggered critical classification.");
+                  setActiveTab('paciente');
+                }}
+                className="w-full bg-orange-600/20 hover:bg-orange-600/30 text-orange-400 text-xs font-bold py-2 px-3 rounded-lg border border-orange-500/20 transition-all flex items-center justify-between"
+              >
+                <span>Simular Agravamento de Paula</span>
+                <ChevronRight className="h-4 w-4 text-orange-400" />
+              </button>
+            </div>
+          </div>
+
+          {/* Notificações Recentes do Ecossistema */}
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <h3 className="font-bold text-slate-800 text-sm mb-3 flex items-center">
+              <Bell className="h-4 w-4 mr-1.5 text-slate-600" /> Notificações da Rede
+            </h3>
+
+            <div className="space-y-3">
+              {notificacoes.map(notif => (
+                <div 
+                  key={notif.id} 
+                  className={`p-3 rounded-lg text-xs leading-relaxed ${
+                    notif.tipo === 'urgente' ? 'bg-amber-50 border border-amber-200 text-amber-900' :
+                    notif.tipo === 'sucesso' ? 'bg-emerald-50 border border-emerald-100 text-emerald-900' :
+                    'bg-slate-50 border border-slate-100 text-slate-700'
+                  }`}
+                >
+                  <p>{notif.mensagem}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Segurança da Informação e Conformidade */}
+          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-3">
+            <h4 className="font-bold text-xs text-slate-700 flex items-center uppercase tracking-wide">
+              <Shield className="h-4 w-4 mr-1.5 text-emerald-600" /> Status de Segurança
+            </h4>
+            <div className="space-y-2 text-xxs">
+              <div className="flex items-center justify-between text-slate-600">
+                <span>Criptografia de dados (AES-256):</span>
+                <span className="font-bold text-emerald-600 flex items-center">● ATIVA</span>
+              </div>
+              <div className="flex items-center justify-between text-slate-600">
+                <span>Conformidade com a LGPD:</span>
+                <span className="font-bold text-emerald-600 flex items-center">● 100% REGULAR</span>
+              </div>
+              <div className="flex items-center justify-between text-slate-600">
+                <span>Auditoria de Logs (Análise da Fila):</span>
+                <span className="font-bold text-slate-500">● 1.402 registros hoje</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </main>
+
+      {/* FOOTER */}
+      <footer className="bg-slate-900 text-slate-400 text-xs py-6 border-t border-slate-800 mt-auto">
+        <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center space-x-2">
+            <Heart className="h-4 w-4 text-emerald-500 fill-emerald-500" />
+            <span className="font-bold text-slate-200">Fila Inteligente SUS</span>
+            <span className="text-slate-600">|</span>
+            <span>Uma iniciativa para a otimização da saúde pública com Inteligência Artificial.</span>
+          </div>
+          <div className="flex space-x-4 text-xxs">
+            <span className="hover:text-slate-300 cursor-pointer">Termos de Privacidade</span>
+            <span className="hover:text-slate-300 cursor-pointer">Segurança Gov.br</span>
+            <span className="hover:text-slate-300 cursor-pointer">Manual do Gestor</span>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
